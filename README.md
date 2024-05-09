@@ -1,33 +1,13 @@
 # Introduction 
 
-In Project 6 you will implement an interpreter for Lambda calculus and an English-to-Lambda Calculus compiler.
-These both consist of three components: a lexer (tokenizer), a parser, and evaluator (interpreter) or generator (compiler).
+In this project is a representation of an LambdaCalc-to-English and English-to-LambdaCalc Interpreter.
 
-Your lexer function will convert an input string to a token list, your parser function will consume these tokens to produce an abstract symbol tree (AST), your evaluator will reduce the lambda calculus expression and your compiler will convert from one language to another.
-
-Here is an example call to the lexer, parser, evaluator and generator.
-
-```ocaml
-let toks = lex_lambda "((Lx. x) a)" in
-let ast = parse_lambda toks in
-let value = reduce [] ast in value
-let lambda_calc = convert (parse_engl (lex_engl "true"))
-``` 
-
-```ocaml
-assert_equal toks [Lambda_LParen; Lambda_LParen; Lambda_Lambda; Lambda_Var "x"; Lambda_Dot; Lambda_Var "x"; Lambda_RParen; Lambda_Var "a"; Lambda_RParen; Lambda_EOF]
-assert_equal ast  (Application (Func ("x" Var "x"), Var "a"))
-assert_equal value (Var "a")
-assert_equal lambda_calc "(Lx.(Ly.x))"
-```
-
+This is way more complex than the other 2 projects seen so I'll try my best to explain everything. 
 ## Part 1: The Lexer (aka Scanner or Tokenizer)
 
-Your parser will take as input a list of tokens; This list is produced by the *lexer* (also called a *scanner* or *tokenizer*) as a result of processing the input string. Lexing is readily implemented by the use of regular expressions, as demonstrated during lecture. Information about OCaml's regular expressions library can be found in the [`Str` module documentation][str doc]. You aren't required to use it, but you may find it helpful.
+The parser will take as input a list of tokens; This list is produced by the *lexer* (also called a *scanner* or *tokenizer*) as a result of processing the input string. Lexing is readily implemented by the use of regular expressions.
 
-Your lexer must be written in [lexer.ml](./src/lexer.ml). You will need to implement the following functions: 
-
-#### `lex_lambda`
+### `lex_lambda`
 
 - **Type:** `string -> lambda_token list` 
 - **Description:** Converts a lambda calc expression (given as a string) to a corresponding token list using the `lambda_token` types.
@@ -94,24 +74,15 @@ Lexical Representation | Token Name
 
 ### **Important Notes:**
 - The lexer input is **case-sensitive**.
-  - The Lambda Calc string "L" should not be lexed as `[Lambda_Var "L"]`, but as `[Lambda_Lambda]`
-  - The Lambda Calc string "l" should not be lexed as `[Lambda_Lambda]` but as `[Lambda_Var "l"]`.
-- Lambda Calc Variables will always be **one** character long
-- Tokens can be separated by arbitrary amounts of whitespace, which your lexer should discard. Spaces, tabs ('\t'), and newlines ('\n') are all considered whitespace.
-  - This means the Lambda Calc string "xx" would be `[Lambda_Var("x");Lambda_Var("x")]`
-  - This means the English string "ifthenelse" would be `[Engl_If;Engl_Then;Engl_Else]`
+- Tokens can be separated by arbitrary amounts of whitespace, which the lexer should discard. Spaces, tabs ('\t'), and newlines ('\n') are all considered whitespace.
 - The last token in a token list should always be the `EOF` token. 
 - When escaping characters with `\` within OCaml strings/regexp, you must use `\\` to escape from both the string and the regexp.
-- Your lexing code will feed the tokens into your parser, so a broken lexer can cause you to fail tests related to parsing. 
 
 ## Part 2: The Parser
-
-In this part, you will implement the parser part of your project. You have two functions to implement here. The parser being created will be a LL(1) parser. 
 First `parse_lambda`, which takes a list of `lambda_token`s and outputs an AST for the input expression of type `lambda_ast`. 
 Second `parse_engl`, which takes a list of `engl_token`s and outputs an AST for the input expression of type `engl_ast`. 
 Put all of your parser code in [parser.ml](./src/parser.ml) in accordance with the signature found in [parser.mli](./src/parser.mli). 
 
-We first offer an overview of these functions, and then we discuss the AST and Grammar for them both.
 
 ### `parse_lambda`
 - **Type:** `lambda_token list -> expr`
@@ -153,19 +124,9 @@ We first offer an overview of these functions, and then we discuss the AST and G
   parse_engl [Engl_True; Engl_And; Engl_LParen; Engl_False; Engl_Or; Engl_True; Engl_EOF]  (* raises Failure because missing parenthesis *)
   ```
 
-We have included two helpers here: `match-token` and `lookahead`. 
-These functions are to help you consume and check the first token in the list and see what the next token in the list is respectively.
-For example:
-```ocaml
-let tok_list = [Engl_LParen; Engl_True; Engl_RParen] in
-assert_equal Engl_LParen (lookahead tok_list);
-assert_equal [Engl_True;Engl_RParen] (match_token tok_list Engl_LParen);
-(match_token tok_list Engl_RParen) (* raises error *)
-```
-
 ### AST and Grammar for `parse_lambda`
 
-Below is the AST type `lambda_ast`, which is returned by `parse_lambda`.
+Below is the AST (Abstract Syntax Tree) type `lambda_ast`, which is returned by `parse_lambda`.
 
 ```ocaml
 type var = string
@@ -225,17 +186,11 @@ C -> H
   -> true and false or M
   -> true and false or true
 ```
-
-### **Important Notes:**
-- Most tests involving the parser use the lexer first
-  - eg. `assert_equal ast (parse (lex input))`
-- `lookahead` and `match_token` may help reduce the number of nested `match` statements you need, but they are optional to use.
-
 ## Part 3: The Evaluator
 
 The evaluator will consist of six (6) functions, all of which demonstrate properties of an interpreter or compiler. 
 The first four functions are related to an interpreter and are `isalpha`, `reduce`, `laze`, and `eager`. 
-All of these functions will be implemented in the `eval.ml` file located in [eval.ml](./src/eval.ml).
+All of these functions will be implemented in the `eval.ml` file located in [eval.ml](./src/eval.ml). 
 
 ### Interpreter
 #### `environment`
@@ -246,15 +201,9 @@ The `environment` type given in [lccTypes.ml](./src/lccTypes.ml) is defined as b
 type environment = (var * lambda_ast option) list
 ```
 
-This is used to store variables and its corresponding value in the scope. For example in the environment `[("x", Some(Var("y")))]` the variable `x` has the value `Var("y")` within this scope. 
-
-To help with this, we give a `lookup` function that takes in an `environment` and a `var` and returns what `var` is bound to (or `None` if needed (eg. free variables)).
-
 For example, if we wanted to evaluate "let x = 3 in x + 1", then we probably want to evaluate "x + 1" where "x = 3".
 In this case, we would want to call `eval [("x",Some(3)] "x + 1"`.
-Consider how this would change for our project.
 
-To make things simpler, you can assume that any intial call to `reduce`, `eager` and `laze` will always include the empty environment.
 
 #### `isalpha`
 - **Type:** `lambda_ast -> lambda_ast -> bool` 
@@ -366,105 +315,3 @@ To make things simpler, you can assume that any intial call to `reduce`, `eager`
   (* ((Lx.((Ly.y) x)) ((Lx.((Lz.z) x)) y)) = (Lx.((Ly.y) x)) ((Lz.z) y) *)
   eager [] (Application(Func("x", Application(Func("y", Var("y")), Var("x"))), Application(Func("x", Application(Func("z", Var("z")), Var("x"))), Var("y")))) = Application(Func("x", Application(Func("y", Var("y")), Var("x"))), Application(Func("z", Var("z")), Var("y")))
   ```
-### **Important Notes:**
-- For `eager`, there is an ambiguous case where the argument of the outermost application is not an application itself but may contain an inner application. For example: `((Ly.y) ((Lz.(Lu.u) z)))` could reduce two ways:
-    - `(Lz.(Lu.u) z)` -> we say that the argument itself is a Func, thus we cannot reduce the argument further
-    - `((Ly.y) (Lz.z))` -> we say that we can reduce the inner application of the argument
-    - **For this project, you should implement the second way**
-      - More on this here: [@1444](https://piazza.com/class/lkimk0rc39wfi/post/1444)
-- For expressions with nested lambdas and arguments, `laze` and `eager` should perform a beta reduction on the outermost expression first.
-  - For an expression like `((Lx.((Ly.y) b)) ((Lz.z) c))`
-  - `laze` should produce `((Ly.y) b)`
-  - `eager` should produce `((Lx.((Ly.y) b)) (c))`
-  - `reduce` should produce `b`
-- For `laze` and `eager`, you will not have to worry about ambiguous application.
-  - Ambiguous means expressions where you don't know which one to reduce down first: `((a ((Lx.x) b)) (c ((Ly.y) d)))`
-    - could be `((a ((Lx.x) b)) (c d)`
-    - could be `((a b) (c ((Ly.y) d)))`
-  - Ultimately these will reduce down to the same Beta Normal form (so you do have to worry about this for `reduce`).
-- We have included `fresh` to help with `isalpha`. You do not have to use this, but we think it may be helpful.
-  It is up to you to decide how/if you want to use it.
-- We have included a header for a function called `alpha_convert` which **we highly recommend that you implement**. 
-  The purpose would be to make every set of bound variables unique. See below for examples.
-  - As shown in the parser and lexer, a variable in Lambda calculus is a single character long. 
-    The type however is `string` if you want to modify this to help you with `alpha_convert`.
-  - `fresh` may also help here but you do not need to use it.
-- Here are some examples of `alpha_convert`. This is not the only output that would be valid:
-  ```ocaml
-  alpha_convert (Func("x",Var("x"))) = Func("y",Var("y"))
-
-  alpha_convert (Func("x",Var("y"))) = Func("x",Var("y"))
-
-  alpha_convert (Application(Func("x",Var("x")),Var("x"))) = Application(Func("y",Var("y")),Var("x"))
-  ```
-
-### Compiler
-
-The next two functions (`convert`, and `readable`) are related to a compiler. 
-Both of these functions will be implemented in the `eval.ml` file located in [eval.ml](./src/eval.ml).
-`convert` will compile English to Lambda Calculus while `readable` will compile Lambda Calculus to English.
-The conversion will be based upon the following Church Encodings.
-
-English | Church Encoding 
---- | ---
-`true` | `(Lx.(Ly.x))`
-`false` | `(Lx.(Ly.y))`
-`if a then b else c` | `((a b) c)`
-`not a` | `((Lx.((x (Lx.(Ly.y))) (Lx.(Ly.x)))) a)`
-`a and b` | `(((Lx.(Ly.((x y) (Lx.(Ly.y))))) a) b)`
-`a or b` | `"(((Lx.(Ly.((x (Lx.(Ly.x))) y))) a) b)`
-
-### `convert`
-- **Type:** `engl_ast -> string`
-- **Description:** Takes an AST and produces the lambda calculus equivalent of the expression. The resulting string should have parenthesis denoting *left association* and parenthesis around the *expression as a whole*. This will follow the Grammar given in part 2 of this project.
-- **Examples** 
-  ```ocaml
-  convert (Bool true) = "(Lx.(Ly.x))"
-
-  convert (If (Bool true, Bool false, Bool true)) = "(((Lx.(Ly.x)) (Lx.(Ly.y))) (Lx.(Ly.x)))"
-
-  convert (And (Bool true, Bool false)) = "(((Lx.(Ly.((x y) (Lx.(Ly.y))))) (Lx.(Ly.x))) (Lx.(Ly.y)))"
-  ```
-### `readable` 
-- **Type:** `lambda_ast -> string`
-- **Description:** Takes an AST and produces the OCaml equivalent of the expression. The expressions may be alpha equivalent to the encodings above. Parenthesis should be around each expression: (eg. `(if a then b else c)`). See below for more information.
-- **Assumptions:** You may assume that the `lambda_ast` can be encoded using the above encodings. (eg. You will not be given something like `(Func("x",Var("y")))` since this is not a valid encoding)
-- **Examples** 
-  ```ocaml
-  readable (Func("x", Func("y", Var("x")))) = "true"
-
-  readable (Func("y", Func("x", Var("y")))) = "true"
-
-  let c1 = parse_lambda (lex_lambda "(((Lx.(Ly.x)) (Lx.(Ly.y)))(Lx.(Ly.x)))") in 
-  readable c1 = "(if true then false else true)"
-
-  let c2 = parse_lambda (lex_lambda "(((Lx.(Ly.((x y) (Lx.(Ly.y)))))(Lx.(Ly.x)))(Lx.(Ly.y)))")
-  readable c2 = "(true and false)" 
-  ```
-Below are the rules for spacing and parenthesis
-+ Bools
-  + Bools have no surrounding whitespace and no parenthesis
-  + `true`, `false`
-+ If expressions
-  + Have 1 set of parenthesis around it 
-  + 1 space separating keywords from each other.
-  + No surrounding whitespace
-  + `(if true then false else true)`
-+ and expressions
-  + Have 1 set of parenthesis around it 
-  + 1 space between the `and` keyword and the arguments.
-  + No surrounding whitespace
-  + `(true and false)`
-+ or expressions
-  + Have 1 set of parenthesis around it 
-  + 1 space between the `or` keyword and the arguments.
-  + No surrounding whitespace
-  + `(true or false)`
-+ not expressions
-  + Have 1 set of parenthesis around it 
-  + 1 space separating not from argument.
-  + No surrounding whitespace
-  + `(not true)`
-+ Nested Expressions
-  + follow the above rules
-  + `((if (not true) then (false and true) else true) or false)`
