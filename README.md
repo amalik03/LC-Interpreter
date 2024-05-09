@@ -1,5 +1,4 @@
 # Introduction 
-## Introduction
 
 In Project 6 you will implement an interpreter for Lambda calculus and an English-to-Lambda Calculus compiler.
 These both consist of three components: a lexer (tokenizer), a parser, and evaluator (interpreter) or generator (compiler).
