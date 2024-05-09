@@ -21,27 +21,6 @@ assert_equal value (Var "a")
 assert_equal lambda_calc "(Lx.(Ly.x))"
 ```
 
-### Ground Rules
-
-You cannot use any imperative features.
-This includes things like references, mutable records, and arrays. 
-Functions given in lecture/discussion will probably need to be modified for this project. 
-
-In addition, you may ***only*** use the `Str` and `String` modules. `stdlib` functions like cons(`::`) and `^` are allowed, but `stdlib` modules like `List` are not allowed with the exception of `List.map`, `List.fold_left`, and `List.fold_right`.
-No other modules will be allowed. 
-
-### Testing & Submitting
-
-First, make sure all your changes are pushed to Github using the `git add`, `git commit`, and `git push` commands.
-
-Next, to submit your project, you can run `submit` from your project directory.
-
-The `submit` command will pull your code from GitHub, not your local files. If you do not push your changes to GitHub, they will not be uploaded to gradescope.
-
-You can test your project directly by running `dune utop src` in the project-6 directory. The necessary functions and types will automatically be imported for you.
-
-You can write your own tests and place them in `test/student/student.ml`.
-
 ## Part 1: The Lexer (aka Scanner or Tokenizer)
 
 Your parser will take as input a list of tokens; This list is produced by the *lexer* (also called a *scanner* or *tokenizer*) as a result of processing the input string. Lexing is readily implemented by the use of regular expressions, as demonstrated during lecture. Information about OCaml's regular expressions library can be found in the [`Str` module documentation][str doc]. You aren't required to use it, but you may find it helpful.
